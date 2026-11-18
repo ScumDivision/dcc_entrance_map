@@ -371,7 +371,8 @@ async function ladeBasis(name) {
     stil = { ...s, sources: { ...s.sources, esri: { type: 'raster', tileSize: 256, maxzoom: 19,
       tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
       attribution: 'Imagery © Esri, Maxar, Earthstar Geographics' } },
-    layers: [{ id: 'esri', type: 'raster', source: 'esri' },
+    layers: [{ id: 'esri', type: 'raster', source: 'esri',
+      paint: { 'raster-brightness-max': 0.82, 'raster-saturation': -0.2 } },
       ...s.layers.filter(l => l.type === 'symbol' || l.id.startsWith('boundary'))] };
   }
   basisStile[name] = stil;
@@ -390,10 +391,12 @@ function hausfarben(s) {
       const staat = id.startsWith('place_country'), wasser = id === 'water_name';
       const strasse = id.startsWith('highway') || id.startsWith('road');
       if (staat) l.layout['text-font'] = ['Noto Sans Bold'];
-      p['text-color'] = dunkel ? (staat ? HAUS.staat : wasser ? HAUS.wassername : strasse ? HAUS.strasse : HAUS.ort)
-        : (staat ? '#6e1a5c' : wasser ? '#2a6b8a' : '#3a1640');
+      const luftbild = zustand.grundkarte === 'satellit';
+      p['text-color'] = luftbild ? (wasser ? HAUS.wassername : '#ffffff')
+        : dunkel ? (staat ? HAUS.staat : wasser ? HAUS.wassername : strasse ? HAUS.strasse : HAUS.ort)
+          : (staat ? '#6e1a5c' : wasser ? '#2a6b8a' : '#3a1640');
       p['text-halo-color'] = dunkel ? HAUS.ink : '#ffffff';
-      p['text-halo-width'] = staat ? 1.8 : 1.5;
+      p['text-halo-width'] = luftbild ? 2.4 : staat ? 1.8 : 1.5;
       p['text-halo-blur'] = 0;
       continue;
     }
@@ -471,13 +474,19 @@ function baueStil() {
           0, 'rgba(0,0,0,0)', 0.04, 'rgba(110,26,92,0.4)', 0.2, 'rgba(255,0,76,0.65)', 0.45, 'rgba(255,45,122,0.85)',
           0.75, 'rgba(255,204,0,0.95)', 1, 'rgba(255,246,208,1)'],
         'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 2, 0.8, 4, 0.65, 6, 0] } },
+    { id: 'zugaenge-hof', type: 'circle', source: 'zugaenge', minzoom: 6, ...filterTeil(),
+      layout: { visibility: sicht(zustand.zugaenge) },
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, 4, 8, 7, 12, 12, 16, 16],
+        'circle-color': '#0b0710', 'circle-blur': 0.6,
+        'circle-opacity': ['interpolate', ['linear'], ['zoom'], 6, 0, 8, zustand.grundkarte === 'satellit' ? 0.7 : 0.45] } },
     { id: 'zugaenge-punkte', type: 'circle', source: 'zugaenge', minzoom: 3.5, ...filterTeil(),
       layout: { visibility: sicht(zustand.zugaenge) },
       paint: {
-        'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 1.5, 8, 3.5, 12, 6],
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 1.5, 8, 3.5, 12, 6.5, 16, 8],
         'circle-color': '#ffcc00',
         'circle-stroke-color': '#0b0710',
-        'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 5, 0, 8, 1],
+        'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 5, 0, 8, 1.2, 12, 2],
         'circle-opacity': ['interpolate', ['linear'], ['zoom'], 3.5, 0, 5.5, 0.92],
         'circle-stroke-opacity': ['interpolate', ['linear'], ['zoom'], 3.5, 0, 5.5, 0.92] } },
     { id: 'auswahl', type: 'circle', source: 'auswahl',
@@ -733,7 +742,7 @@ function laenderListe() {
   sel.addEventListener('change', () => {
     zustand.land = sel.value;
     merken();
-    for (const id of ['zugaenge-dichte', 'zugaenge-punkte']) karte.setFilter(id, landFilter());
+    for (const id of ['zugaenge-dichte', 'zugaenge-hof', 'zugaenge-punkte']) karte.setFilter(id, landFilter());
     statistik();
     markiere([]);
     if (zustand.land) zeigeGruppe(auswahlIndizes(), false);
@@ -861,7 +870,7 @@ function bedienung() {
   }
 
   const schalter = {
-    zugaenge: ['zugaenge-dichte', 'zugaenge-punkte'],
+    zugaenge: ['zugaenge-dichte', 'zugaenge-hof', 'zugaenge-punkte'],
     nacht: ['w-nacht', 'terminator'],
     isobaren: ['isobaren', 'isobaren-zahl', 'druckzentren'],
     nullgrad: ['nullgrad'],
@@ -899,7 +908,7 @@ function bedienung() {
     befuelleQuellen();
     markiere([]);
     laenderFuellen();
-    for (const id of ['zugaenge-dichte', 'zugaenge-punkte']) karte.setFilter(id, landFilter());
+    for (const id of ['zugaenge-dichte', 'zugaenge-hof', 'zugaenge-punkte']) karte.setFilter(id, landFilter());
     statistik();
   });
 
