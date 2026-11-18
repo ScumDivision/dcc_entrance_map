@@ -293,7 +293,7 @@ def raster_schreiben(F):
         pad = (-len(b)) % 4
         teile.append(b + b"\0" * pad)
         pos += len(b) + pad
-    (AUS / "wetter.bin.gz").write_bytes(gzip.compress(b"".join(teile), 6))
+    (AUS / "wetter.bin.gz").write_bytes(gzip.compress(b"".join(teile), 6, mtime=0))  # ohne Zeitstempel: gleiche Daten = gleiche Datei
     return kopf
 
 
