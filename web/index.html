@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dungeon entrances at the collapse</title>
+<meta name="description" content="Unofficial Dungeon Crawler Carl fan map: 150,000 dungeon entrances worldwide with the weather at the moment of the collapse (ERA5).">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div id="karte"></div>
+<canvas id="windfeld"></canvas>
+
+<aside id="panel">
+  <header>
+    <h1 data-t="titel">Dungeon entrances at the collapse</h1>
+    <p class="zeit"><span data-t="datum">Tuesday, 3 January 2023</span> · <b>10:23 UTC</b></p>
+    <p class="zeit klein" data-t="zeiten">02:23 PST · 11:23 CET · 15:53 India · 18:23 Beijing</p>
+    <div class="sprache" id="sprache">
+      <button data-wert="de" title="Deutsch">DE</button>
+      <button data-wert="en" title="English">EN</button>
+    </div>
+    <button id="einklappen" data-t-title="einklappen" title="Show/hide panel">‹</button>
+  </header>
+
+  <div class="inhalt">
+    <section>
+      <h2 data-t="verteilung">Distribution</h2>
+      <div class="knoepfe" id="verteilung"></div>
+      <div class="suche">
+        <input id="suche" type="search" data-t-ph="suche" placeholder="Search place …" autocomplete="off">
+        <ul id="treffer"></ul>
+      </div>
+      <select id="land"></select>
+      <div id="statistik"></div>
+    </section>
+
+    <section>
+      <h2 data-t="wetter">Weather</h2>
+      <div class="wahl" id="wetterwahl">
+        <label><input type="radio" name="wetter" value=""> <span data-t="keins">none</span></label>
+        <label><input type="radio" name="wetter" value="temperatur"> <span data-t="temperatur">Temperature</span></label>
+        <label><input type="radio" name="wetter" value="wolken"> <span data-t="wolken">Clouds</span></label>
+        <label><input type="radio" name="wetter" value="niederschlag" checked> <span data-t="niederschlag">Precipitation</span></label>
+        <label><input type="radio" name="wetter" value="wind"> <span data-t="wind">Wind</span></label>
+        <label><input type="radio" name="wetter" value="schnee"> <span data-t="schnee">Snow cover</span></label>
+      </div>
+      <div id="legende"></div>
+      <div class="schalter">
+        <label><input type="checkbox" id="s-zugaenge" checked> <span data-t="sZugaenge">Entrances</span></label>
+        <label><input type="checkbox" id="s-nacht" checked> <span data-t="sNacht">Day and night</span></label>
+        <label><input type="checkbox" id="s-windfeld"> <span data-t="sWindfeld">Wind flow</span></label>
+        <label><input type="checkbox" id="s-isobaren"> <span data-t="sIsobaren">Isobars, highs and lows</span></label>
+        <label><input type="checkbox" id="s-nullgrad"> <span data-t="sNullgrad">0 °C line</span></label>
+      </div>
+    </section>
+
+    <section>
+      <h2 data-t="karte">Map</h2>
+      <div class="knoepfe" id="grundkarte">
+        <button data-wert="dunkel" data-t="dunkel">Dark</button>
+        <button data-wert="hell" data-t="hell">Light</button>
+        <button data-wert="satellit" data-t="satellit">Satellite</button>
+      </div>
+      <div class="knoepfe" id="projektion">
+        <button data-wert="globe" data-t="globus">Globe</button>
+        <button data-wert="mercator" data-t="flach">Flat</button>
+      </div>
+    </section>
+
+    <footer>
+      <p data-t="hilfe"></p>
+      <p data-t-html="modelle"></p>
+      <p data-t="wetterInfo"></p>
+      <p id="quelle"></p>
+      <p data-t-html="fan"></p>
+    </footer>
+  </div>
+</aside>
+
+<div id="zeiger"></div>
+<div id="laden">…</div>
+
+<script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
