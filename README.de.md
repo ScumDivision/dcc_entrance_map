@@ -111,7 +111,7 @@ Die beiden CSV-Dateien in [`zugaenge/`](zugaenge/) enthalten eine Zeile je Zugan
 | Spalte | Bedeutung |
 |---|---|
 | `lat`, `lon` | Position (WGS 84) |
-| `name` | größter Ort der Siedlung (GeoNames-Orte ab 500 Einwohnern, sonst der nächste bewohnte Ort jeder Größe); `bei X` = in der Nähe von X; `(namenlos)` = kein bewohnter Ort im Umkreis von 30 km |
+| `name` | größter Ort der Siedlung (GeoNames-Orte ab 500 Einwohnern, sonst der nächste bewohnte Ort jeder Größe); `bei X` = in der Nähe von X; `(namenlos)` = die Bevölkerungsdaten zeigen eine Siedlung, GeoNames kennt im Umkreis von 30 km aber keinen Ortsnamen |
 | `cc` | Ländercode (ISO 3166-1 Alpha-2) |
 | `region`, `region_en` | Bundesland oder Provinz (Natural Earth admin-1), deutscher und englischer Name |
 | `siedlung_pop` | Einwohner der Siedlung mit Umland bis 25 km |
@@ -128,8 +128,12 @@ beibehalten.
 
 - Die Zugänge liegen in den bewohnten 100-m-Feldern, aber das Raster bildet ab, wo Menschen wohnen, nicht Straßen oder
   Plätze. In sehr kleinen oder verstreuten Orten kann ein Zugang trotzdem neben einem Feldweg landen.
-- Einige Hundert Zugänge, vor allem im Sahel und in abgelegenen Teilen Kenias und Indonesiens, haben in GeoNames keinen
-  bewohnten Ort im Umkreis von 30 km und heißen `(namenlos)`. Das Popup zeigt trotzdem Region und Land.
+- Wo Menschen wohnen und wie Orte heißen, kommt aus zwei verschiedenen Quellen: dem Bevölkerungsraster (GHSL, berechnet
+  aus Satellitenbildern und Volkszählungen) und dem Ortsverzeichnis GeoNames. Bei einigen Hundert Zugängen zeigt das
+  Raster eine Siedlung, GeoNames kennt im Umkreis von 30 km aber keinen Ortsnamen. Meist sind das Goldgräberlager in der
+  Sahara (Nordsudan, Niger, Mali, Tschad), Siedlungen von Geflüchteten oder Hirten im Nordosten Kenias und verstreute
+  Weiler im Hochland von Papua. Sie heißen auf der Karte *Siedlung ohne Ortsnamen* (in der CSV `(namenlos)`); das Popup
+  zeigt trotzdem Region und Land.
 - ERA5 hat eine Auflösung von etwa 28 km; Täler, Küsten und Stadtklima sind geglättet.
 - Die Bevölkerungsdaten stammen von 2025, nicht 2023. Bei diesem Maßstab spielt das keine Rolle.
 

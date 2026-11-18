@@ -45,7 +45,9 @@ const SPRACHEN = {
       weltweit: 'Zugänge weltweit', inLand: land => `Zugänge in ${land}`,
       stat: ['Tageslicht', 'Dämmerung', 'Nacht', 'Frost', 'Niederschlag', 'davon Schnee', 'Schneedecke', 'Sturmböen'],
       mittel: (t, kalt, warm) => `Mittel ${t} °C · kältester ${kalt} · wärmster ${warm}`,
-      zugang: 'Zugang', wetterKollaps: 'Wetter beim Kollaps', namenlos: 'Namenlose Siedlung',
+      zugang: 'Zugang', wetterKollaps: 'Wetter beim Kollaps', namenlos: 'Siedlung ohne Ortsnamen',
+      namenlosInfo: 'Die Bevölkerungsdaten zeigen hier eine Siedlung, aber das Ortsverzeichnis GeoNames kennt im Umkreis ' +
+        'von 30 km keinen Ortsnamen. Oft sind das Goldgräber- oder Flüchtlingslager oder verstreute Weiler.',
       zSiedlung: 'Siedlung', zUmgebung: 'Umgebung', zNaechster: 'Nächster', zOrtszeit: 'Ortszeit',
       siedlung: (pop, n, je) => `${pop} Einw. mit Umland, ${n} ${n === '1' ? 'Zugang' : 'Zugänge'} (≈ ${je} je Zugang)`,
       umgebung: (u, d, k) => `${u} Einw. im Umkreis von 5 km; am Zugang ${d} Einw./km² (${k})`,
@@ -120,7 +122,9 @@ const SPRACHEN = {
       weltweit: 'entrances worldwide', inLand: land => `entrances in ${land}`,
       stat: ['Daylight', 'Twilight', 'Night', 'Frost', 'Precipitation', 'of which snow', 'Snow cover', 'Storm gusts'],
       mittel: (t, kalt, warm) => `Mean ${t} °C · coldest ${kalt} · warmest ${warm}`,
-      zugang: 'Entrance', wetterKollaps: 'Weather at the collapse', namenlos: 'Unnamed settlement',
+      zugang: 'Entrance', wetterKollaps: 'Weather at the collapse', namenlos: 'Settlement without a place name',
+      namenlosInfo: 'The population data shows a settlement here, but the GeoNames gazetteer has no place name within ' +
+        '30 km. Often these are gold-mining or refugee camps, or scattered hamlets.',
       zSiedlung: 'Settlement', zUmgebung: 'Surroundings', zNaechster: 'Nearest', zOrtszeit: 'Local time',
       siedlung: (pop, n, je) => `${pop} people incl. surroundings, ${n} ${n === '1' ? 'entrance' : 'entrances'} ` +
         `(≈ ${je} per entrance)`,
@@ -328,12 +332,13 @@ function regionName(i) {
 function zugangHtml(i) {
   const t = L.t, w = probe(Z.lat[i], Z.lon[i]);
   const [zone, versatz] = Z.zonen[Z.tz[i]];
-  const name = Z.name[i] === '(namenlos)' ? t.namenlos : mitDeutsch(Z.name[i]);
+  const name = anzeigeName(Z.name[i]);
   const land = landName(Z.cc[i]);
   const region = land.startsWith(regionName(i)) ? '' : regionName(i);
   return `<div class="pop">
     <h3>${esc(name)}</h3>
     <div class="unter">${region ? esc(region) + ', ' : ''}${esc(land)} · ${koordinaten(Z.lat[i], Z.lon[i])}</div>
+    ${Z.name[i] === NAMENLOS ? `<div class="weitere">${t.namenlosInfo}</div>` : ''}
     <h4>${t.zugang}</h4>
     <table>
       ${zugangTabelle(i)}
@@ -636,7 +641,7 @@ function statistik() {
   const t = L.t;
   const reihe = (titel, x) => `<tr><td>${titel}</td><td><div class="balken"><i style="width:${n ? x / n * 100 : 0}%"></i></div></td>
     <td class="zahl">${n ? zahl(x / n * 100) : 0} %</td></tr>`;
-  const ort = i => `<a href="#" data-i="${i}">${esc(Z.name[i])}</a> (${zahl(werte.t[i], 1)} °C)`;
+  const ort = i => `<a href="#" data-i="${i}">${esc(anzeigeName(Z.name[i]))}</a> (${zahl(werte.t[i], 1)} °C)`;
   const [s0, s1, s2, s3, s4, s5, s6, s7] = t.stat;
   document.getElementById('statistik').innerHTML = n ? `
     <div class="gesamt">${zahl(n)} <small>${zustand.land ? esc(t.inLand(landName(zustand.land))) : t.weltweit}</small></div>
@@ -711,16 +716,18 @@ const DEUTSCHE_NAMEN = { München: 'Munich', Nürnberg: 'Nuremberg', Wien: 'Vien
   Saragossa: 'Zaragoza', 'Neu-Delhi': 'New Delhi', Bombay: 'Mumbai', Kalkutta: 'Kolkata', Singapur: 'Singapore' };
 const ENGLISCH_DEUTSCH = Object.fromEntries(Object.entries(DEUTSCHE_NAMEN).map(([de, en]) => [en, de]));
 const mitDeutsch = name => (zustand.sprache === 'de' && ENGLISCH_DEUTSCH[name] ? `${name} (${ENGLISCH_DEUTSCH[name]})` : name);
+const NAMENLOS = '(namenlos)'; // so steht es in den Daten
+const anzeigeName = name => (name === NAMENLOS ? L.t.namenlos : mitDeutsch(name));
 
 function suche() {
   const feld = document.getElementById('suche'), liste = document.getElementById('treffer');
   let eintraege = null, treffer = [], aktiv = 0, stand = null;
   const zeichnen = () => {
-    liste.innerHTML = treffer.map((t, j) => `<li data-j="${j}" class="${j === aktiv ? 'aktiv' : ''}">${esc(mitDeutsch(t.name))}
+    liste.innerHTML = treffer.map((t, j) => `<li data-j="${j}" class="${j === aktiv ? 'aktiv' : ''}">${esc(anzeigeName(t.name))}
       <span>${esc(landName(t.cc))}${t.idx.length > 1 ? ' · ' + zahl(t.idx.length) : ''}</span></li>`).join('');
     liste.classList.toggle('offen', treffer.length > 0);
   };
-  const waehle = t => { liste.classList.remove('offen'); feld.value = t.name; zeigeGruppe(t.idx); };
+  const waehle = t => { liste.classList.remove('offen'); feld.value = anzeigeName(t.name); zeigeGruppe(t.idx); };
   feld.addEventListener('input', () => {
     const q = normal(feld.value.trim());
     aktiv = 0;

@@ -111,7 +111,7 @@ The two CSV files in [`zugaenge/`](zugaenge/) contain one row per entrance:
 | Column | Meaning |
 |---|---|
 | `lat`, `lon` | position (WGS 84) |
-| `name` | largest place of the settlement (GeoNames places with 500+ inhabitants, otherwise the nearest populated place of any size); `bei X` = near X; `(namenlos)` = no populated place within 30 km |
+| `name` | largest place of the settlement (GeoNames places with 500+ inhabitants, otherwise the nearest populated place of any size); `bei X` = near X; `(namenlos)` = the population data shows a settlement, but GeoNames has no place name within 30 km |
 | `cc` | country code (ISO 3166-1 alpha-2) |
 | `region`, `region_en` | state or province (Natural Earth admin-1), German and English name |
 | `siedlung_pop` | population of the settlement including its surroundings up to 25 km |
@@ -127,8 +127,12 @@ Feel free to use them for your own games, stories or maps; please keep the sourc
 
 - Entrances sit in the most populated 100 m cells, but the population grid models where people live, not streets or
   squares. In very small or very scattered places an entrance can still end up next to a farm track.
-- A few hundred entrances, mostly in the Sahel and remote parts of Kenya and Indonesia, have no populated place within
-  30 km in GeoNames and are called `(namenlos)` (unnamed). The popup still shows region and country.
+- Where people live and what places are called come from two different sources: the population grid (GHSL, derived
+  from satellite images and censuses) and the GeoNames gazetteer. For a few hundred entrances the population grid shows a
+  settlement, but GeoNames has no place name within 30 km. These are mostly informal gold-mining camps in the Sahara
+  (northern Sudan, Niger, Mali, Chad), refugee or herder settlements in north-eastern Kenya and scattered highland
+  hamlets in Papua. They appear as *settlement without a place name* (`(namenlos)` in the CSV); the popup still shows
+  region and country.
 - ERA5 has a resolution of about 28 km, so valleys, coasts and city climates are smoothed out.
 - Population data is from 2025, not 2023. The difference does not matter at this scale.
 
