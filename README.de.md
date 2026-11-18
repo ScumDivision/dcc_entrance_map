@@ -132,8 +132,8 @@ beibehalten.
   aus Satellitenbildern und Volkszählungen) und dem Ortsverzeichnis GeoNames. Bei einigen Hundert Zugängen zeigt das
   Raster eine Siedlung, GeoNames kennt im Umkreis von 30 km aber keinen Ortsnamen. Meist sind das Goldgräberlager in der
   Sahara (Nordsudan, Niger, Mali, Tschad), Siedlungen von Geflüchteten oder Hirten im Nordosten Kenias und verstreute
-  Weiler im Hochland von Papua. Sie heißen auf der Karte *Siedlung ohne Ortsnamen* (in der CSV `(namenlos)`); das Popup
-  zeigt trotzdem Region und Land.
+  Weiler im Hochland von Papua. Auf der Karte tragen sie Region und Land im Titel, zum Beispiel
+  *Siedlung in Schamal Darfur (Sudan)*; in der CSV heißen sie `(namenlos)`.
 - ERA5 hat eine Auflösung von etwa 28 km; Täler, Küsten und Stadtklima sind geglättet.
 - Die Bevölkerungsdaten stammen von 2025, nicht 2023. Bei diesem Maßstab spielt das keine Rolle.
 

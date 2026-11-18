@@ -46,12 +46,13 @@ const SPRACHEN = {
       stat: ['Tageslicht', 'Dämmerung', 'Nacht', 'Frost', 'Niederschlag', 'davon Schnee', 'Schneedecke', 'Sturmböen'],
       mittel: (t, kalt, warm) => `Mittel ${t} °C · kältester ${kalt} · wärmster ${warm}`,
       zugang: 'Zugang', wetterKollaps: 'Wetter beim Kollaps', namenlos: 'Siedlung ohne Ortsnamen',
+      siedlungIn: (region, land) => `Siedlung in ${region} (${land})`, namenlosLand: land => `Siedlung ohne Ortsnamen (${land})`,
       namenlosInfo: 'Die Bevölkerungsdaten zeigen hier eine Siedlung, aber das Ortsverzeichnis GeoNames kennt im Umkreis ' +
         'von 30 km keinen Ortsnamen. Oft sind das Goldgräber- oder Flüchtlingslager oder verstreute Weiler.',
       zSiedlung: 'Siedlung', zUmgebung: 'Umgebung', zNaechster: 'Nächster', zOrtszeit: 'Ortszeit',
       siedlung: (pop, n, je) => `${pop} Einw. mit Umland, ${n} ${n === '1' ? 'Zugang' : 'Zugänge'} (≈ ${je} je Zugang)`,
       umgebung: (u, d, k) => `${u} Einw. im Umkreis von 5 km; am Zugang ${d} Einw./km² (${k})`,
-      naechster: km => `Zugang in ${km} km`,
+      naechster: km => `Zugang in ${km} km`, naechsterNah: 'Zugang weniger als 100 m entfernt',
       ortszeit: (uhr, utc, zone, von, bis) => `${uhr} (${utc}, ${zone}), Treppe offen ${von}–${bis}`,
       wSonne: 'Sonne', wLuft: 'Luft', wHimmel: 'Himmel', wNieder: 'Niederschlag', wWind: 'Wind', wSchnee: 'Schneedecke',
       ueber: g => `${g}° über dem Horizont`, unter: g => `${g}° unter dem Horizont`,
@@ -123,13 +124,15 @@ const SPRACHEN = {
       stat: ['Daylight', 'Twilight', 'Night', 'Frost', 'Precipitation', 'of which snow', 'Snow cover', 'Storm gusts'],
       mittel: (t, kalt, warm) => `Mean ${t} °C · coldest ${kalt} · warmest ${warm}`,
       zugang: 'Entrance', wetterKollaps: 'Weather at the collapse', namenlos: 'Settlement without a place name',
+      siedlungIn: (region, land) => `Settlement in ${region} (${land})`,
+      namenlosLand: land => `Settlement without a place name (${land})`,
       namenlosInfo: 'The population data shows a settlement here, but the GeoNames gazetteer has no place name within ' +
         '30 km. Often these are gold-mining or refugee camps, or scattered hamlets.',
       zSiedlung: 'Settlement', zUmgebung: 'Surroundings', zNaechster: 'Nearest', zOrtszeit: 'Local time',
       siedlung: (pop, n, je) => `${pop} people incl. surroundings, ${n} ${n === '1' ? 'entrance' : 'entrances'} ` +
         `(≈ ${je} per entrance)`,
       umgebung: (u, d, k) => `${u} people within 5 km; ${d} people/km² at the entrance (${k})`,
-      naechster: km => `entrance ${km} km away`,
+      naechster: km => `entrance ${km} km away`, naechsterNah: 'entrance less than 100 m away',
       ortszeit: (uhr, utc, zone, von, bis) => `${uhr} (${utc}, ${zone}), stairwell open ${von}–${bis}`,
       wSonne: 'Sun', wLuft: 'Air', wHimmel: 'Sky', wNieder: 'Precipitation', wWind: 'Wind', wSchnee: 'Snow cover',
       ueber: g => `${g}° above the horizon`, unter: g => `${g}° below the horizon`,
@@ -320,7 +323,7 @@ function zugangTabelle(i) {
   return `
     <tr><td>${t.zSiedlung}</td><td>${t.siedlung(leute(pop), zahl(n), leute(Math.round(pop / Math.max(n, 1))))}</td></tr>
     <tr><td>${t.zUmgebung}</td><td>${t.umgebung(leute(Z.umkreis_pop[i]), zahl(Z.dichte[i]), L.klassen[Z.klasse[i]] || '?')}</td></tr>
-    <tr><td>${t.zNaechster}</td><td>${t.naechster(zahl(km, km < 10 ? 1 : 0))}</td></tr>`;
+    <tr><td>${t.zNaechster}</td><td>${km < 0.1 ? t.naechsterNah : t.naechster(zahl(km, km < 10 ? 1 : 0))}</td></tr>`;
 }
 
 function regionName(i) {
@@ -332,7 +335,7 @@ function regionName(i) {
 function zugangHtml(i) {
   const t = L.t, w = probe(Z.lat[i], Z.lon[i]);
   const [zone, versatz] = Z.zonen[Z.tz[i]];
-  const name = anzeigeName(Z.name[i]);
+  const name = anzeigeName(Z.name[i], i);
   const land = landName(Z.cc[i]);
   const region = land.startsWith(regionName(i)) ? '' : regionName(i);
   return `<div class="pop">
@@ -641,7 +644,7 @@ function statistik() {
   const t = L.t;
   const reihe = (titel, x) => `<tr><td>${titel}</td><td><div class="balken"><i style="width:${n ? x / n * 100 : 0}%"></i></div></td>
     <td class="zahl">${n ? zahl(x / n * 100) : 0} %</td></tr>`;
-  const ort = i => `<a href="#" data-i="${i}">${esc(anzeigeName(Z.name[i]))}</a> (${zahl(werte.t[i], 1)} °C)`;
+  const ort = i => `<a href="#" data-i="${i}">${esc(anzeigeName(Z.name[i], i))}</a> (${zahl(werte.t[i], 1)} °C)`;
   const [s0, s1, s2, s3, s4, s5, s6, s7] = t.stat;
   document.getElementById('statistik').innerHTML = n ? `
     <div class="gesamt">${zahl(n)} <small>${zustand.land ? esc(t.inLand(landName(zustand.land))) : t.weltweit}</small></div>
@@ -717,7 +720,13 @@ const DEUTSCHE_NAMEN = { München: 'Munich', Nürnberg: 'Nuremberg', Wien: 'Vien
 const ENGLISCH_DEUTSCH = Object.fromEntries(Object.entries(DEUTSCHE_NAMEN).map(([de, en]) => [en, de]));
 const mitDeutsch = name => (zustand.sprache === 'de' && ENGLISCH_DEUTSCH[name] ? `${name} (${ENGLISCH_DEUTSCH[name]})` : name);
 const NAMENLOS = '(namenlos)'; // so steht es in den Daten
-const anzeigeName = name => (name === NAMENLOS ? L.t.namenlos : mitDeutsch(name));
+// Ohne Ortsnamen: Region und Land in den Titel (i fehlt in der Suche, die ganze Gruppen zeigt)
+function anzeigeName(name, i) {
+  if (name !== NAMENLOS) return mitDeutsch(name);
+  if (i === undefined) return L.t.namenlos;
+  const land = landName(Z.cc[i]), region = regionName(i);
+  return region && !land.startsWith(region) ? L.t.siedlungIn(region, land) : L.t.namenlosLand(land);
+}
 
 function suche() {
   const feld = document.getElementById('suche'), liste = document.getElementById('treffer');

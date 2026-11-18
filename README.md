@@ -131,8 +131,8 @@ Feel free to use them for your own games, stories or maps; please keep the sourc
   from satellite images and censuses) and the GeoNames gazetteer. For a few hundred entrances the population grid shows a
   settlement, but GeoNames has no place name within 30 km. These are mostly informal gold-mining camps in the Sahara
   (northern Sudan, Niger, Mali, Chad), refugee or herder settlements in north-eastern Kenya and scattered highland
-  hamlets in Papua. They appear as *settlement without a place name* (`(namenlos)` in the CSV); the popup still shows
-  region and country.
+  hamlets in Papua. On the map they are titled with their region and country, for example *Settlement in North
+  Darfur (Sudan)*; in the CSV the name is `(namenlos)`.
 - ERA5 has a resolution of about 28 km, so valleys, coasts and city climates are smoothed out.
 - Population data is from 2025, not 2023. The difference does not matter at this scale.
 
