@@ -25,6 +25,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: actions/configure-pages@v6
+      - name: Versionsnummer gegen veraltete Browser-Caches / version stamp against stale browser caches
+        run: sed -i "s/__VERSION__/${GITHUB_SHA::8}/g" web/index.html web/app.js
       - uses: actions/upload-pages-artifact@v5
         with:
           path: web

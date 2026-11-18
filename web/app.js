@@ -4,6 +4,9 @@
 
 const BASIS = location.href.replace(/[#?].*$/, '').replace(/[^/]*$/, '');
 const DATEN = BASIS + 'daten/';
+// Der Pages-Workflow ersetzt das durch den Commit, damit Browser nach jeder Veröffentlichung frische Dateien holen.
+const VERSION = '__VERSION__';
+const V = `?v=${VERSION}`;
 const RAD = Math.PI / 180;
 const WETTER = ['temperatur', 'wolken', 'niederschlag', 'wind', 'schnee'];
 const OPAZITAET = { temperatur: 0.62, wolken: 0.85, niederschlag: 0.95, wind: 0.8, schnee: 0.85, nacht: 1 };
@@ -192,13 +195,13 @@ const gross = s => (s ? s[0].toUpperCase() + s.slice(1) : s);
 // ------------------------------------------------------------ Daten
 
 async function ladeJson(name) {
-  const r = await fetch(DATEN + name);
+  const r = await fetch(DATEN + name + V);
   if (!r.ok) throw new Error(`${name}: ${r.status}`);
   return r.json();
 }
 
 async function ladeRaster() {
-  let buf = await (await fetch(DATEN + 'wetter.bin.gz')).arrayBuffer();
+  let buf = await (await fetch(DATEN + 'wetter.bin.gz' + V)).arrayBuffer();
   const kopf = new Uint8Array(buf, 0, 2);
   if (kopf[0] === 0x1f && kopf[1] === 0x8b) {
     const strom = new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'));
@@ -423,7 +426,7 @@ function baueStil() {
   const strich = hell() ? 'rgba(58,22,64,' : 'rgba(255,217,230,';
   const wetter = [];
   for (const n of [...WETTER, 'nacht']) {
-    s.sources['w-' + n] = { type: 'raster', tileSize: 256, maxzoom: 4, tiles: [`${DATEN}kacheln/${n}/{z}/{x}/{y}.png`] };
+    s.sources['w-' + n] = { type: 'raster', tileSize: 256, maxzoom: 4, tiles: [`${DATEN}kacheln/${n}/{z}/{x}/{y}.png${V}`] };
     const paint = { 'raster-opacity': OPAZITAET[n], 'raster-resampling': 'linear', 'raster-fade-duration': 0 };
     if (n === 'wolken' && hell()) paint['raster-brightness-max'] = 0.6;
     if (n === 'nacht' && hell()) paint['raster-opacity'] = 0.75;
@@ -432,7 +435,7 @@ function baueStil() {
   }
   s.sources['w-temperatur'].attribution = 'Weather: ERA5, Copernicus/ECMWF · Population: GHSL (JRC)';
   for (const n of ['isobaren', 'druckzentren', 'nullgrad', 'terminator'])
-    s.sources[n] = { type: 'geojson', data: `${DATEN}${n}.geojson` };
+    s.sources[n] = { type: 'geojson', data: `${DATEN}${n}.geojson${V}` };
   const leer = { type: 'FeatureCollection', features: [] };
   s.sources.zugaenge = { type: 'geojson', data: leer };
   s.sources.auswahl = { type: 'geojson', data: leer };
