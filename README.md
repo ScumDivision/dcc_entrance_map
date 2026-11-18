@@ -141,7 +141,7 @@ Found an entrance in a strange spot, or have an idea for the map? Open an
 | Data | Source | Licence |
 |---|---|---|
 | Population, settlement classes | [GHSL](https://human-settlement.emergency.copernicus.eu/) GHS-POP (1 km and 100 m) and GHS-SMOD 2025, European Commission, Joint Research Centre | CC BY 4.0 |
-| Place names | [GeoNames](https://www.geonames.org/) cities1000 | CC BY 4.0 |
+| Place names | [GeoNames](https://www.geonames.org/) cities500 | CC BY 4.0 |
 | Regions | [Natural Earth](https://www.naturalearthdata.com/) admin-1 states and provinces | public domain |
 | Weather | [ERA5](https://cds.climate.copernicus.eu/) through [ARCO-ERA5](https://github.com/google-research/arco-era5) (Google Research) | Copernicus licence; contains modified Copernicus Climate Change Service information (2023) |
 | Base maps | [OpenFreeMap](https://openfreemap.org/), [OpenMapTiles](https://openmaptiles.org/), © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors | ODbL, see providers |

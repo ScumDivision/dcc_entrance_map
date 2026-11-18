@@ -63,7 +63,7 @@ QUELLEN = {
     "pop": f"{GHSL}/GHS_POP_GLOBE_R2023A/GHS_POP_E2025_GLOBE_R2023A_54009_1000/V1-0/GHS_POP_E2025_GLOBE_R2023A_54009_1000_V1_0.zip",
     "pop100": f"{GHSL}/GHS_POP_GLOBE_R2023A/GHS_POP_E2025_GLOBE_R2023A_54009_100/V1-0/GHS_POP_E2025_GLOBE_R2023A_54009_100_V1_0.zip",
     "smod": f"{GHSL}/GHS_SMOD_GLOBE_R2023A/GHS_SMOD_E2025_GLOBE_R2023A_54009_1000/V2-0/GHS_SMOD_E2025_GLOBE_R2023A_54009_1000_V2_0.zip",
-    "geonames": "https://download.geonames.org/export/dump/cities1000.zip",
+    "geonames": "https://download.geonames.org/export/dump/cities500.zip",
     "regionen": "https://naciscdn.org/naturalearth/10m/cultural/ne_10m_admin_1_states_provinces.zip",
 }
 STUFEN = [0, 10_000, 100_000, 500_000, 1_000_000, 5_000_000, np.inf]
@@ -79,7 +79,7 @@ KLASSEN = {30: "Stadtzentrum", 23: "dichte Stadt", 22: "Kleinstadt", 21: "Vorort
 def hole(daten: Path, art: str) -> Path:
     """Lädt eine Quelle (falls nötig) und gibt den Pfad der entpackten Datei zurück."""
     muster = {"pop": "GHS_POP_*_54009_1000_*.tif", "pop100": "GHS_POP_*_54009_100_*.tif", "smod": "GHS_SMOD_*.tif",
-              "geonames": "cities1000.txt", "regionen": "ne_10m_admin_1_states_provinces.shp"}[art]
+              "geonames": "cities500.txt", "regionen": "ne_10m_admin_1_states_provinces.shp"}[art]
     treffer = sorted(daten.glob(muster))
     if not treffer:
         daten.mkdir(parents=True, exist_ok=True)
