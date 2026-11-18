@@ -43,7 +43,8 @@ many people lived around it, what time it was there and what the sky looked like
 ## The two distributions
 
 Both start from the same data: settlements are connected clusters of populated 1 km cells (GHSL settlement model),
-plus the population living up to 25 km around them.
+plus the population living up to 25 km around them. Within a settlement, each entrance first picks a 1 km cell by its
+population and then one of its hundred 100 m cells, again by population, so entrances land between the houses.
 
 **Hybrid (H)** uses settlements from small-town size upwards. Each one gets a small base share plus a share
 proportional to population<sup>0.85</sup>, so the number of entrances grows almost in step with the population.
@@ -56,7 +57,7 @@ fewer than their population alone would give them, and remote places get a real 
 | | Hybrid (H) | Diversity (D) |
 |---|---:|---:|
 | Shanghai, within 50 km | 267 | 110 |
-| Delhi, within 50 km | 306 | 104 |
+| Delhi, within 50 km | 306 | 103 |
 | Tokyo, within 50 km | 246 | 96 |
 | Berlin, within 50 km | 59 | 48 |
 | Greenland | 1 | 19 |
@@ -87,7 +88,7 @@ You only need this to change the distribution or the weather time. The scripts d
 with [uv](https://docs.astral.sh/uv/):
 
 ```bash
-uv run dungeon_zugaenge.py   # entrances: downloads about 380 MB of source data to cache/, writes zugaenge/*.csv
+uv run dungeon_zugaenge.py   # entrances: downloads about 5.7 GB of source data to cache/, writes zugaenge/*.csv
 uv run bauen.py              # map data: downloads ERA5 fields (about 40 MB), writes web/daten/
 ```
 
@@ -99,6 +100,7 @@ Useful options of `dungeon_zugaenge.py` (see `--help` for all):
 | `--d-zelle 100` | size of the regions in km |
 | `--d-schwelle 1000` | smallest settlement (people, including surroundings) that can get an entrance in D |
 | `--seed 42` | random seed |
+| `--grob` | skip the 100 m population grid (5.3 GB) and place entrances at random inside their 1 km cell |
 
 The code is commented in German; the README and the map are bilingual.
 
@@ -123,8 +125,8 @@ Feel free to use them for your own games, stories or maps; please keep the sourc
 
 ## Known limitations
 
-- Entrances are placed at a random spot inside a populated 1 km cell. At the edge of small towns this can put an
-  entrance a few hundred metres outside the houses, in a field or on a moor.
+- Entrances sit in the most populated 100 m cells, but the population grid models where people live, not streets or
+  squares. In very small or very scattered places an entrance can still end up next to a farm track.
 - Settlements without a named place nearby are called `(namenlos)` (unnamed). The popup still shows region and country.
 - ERA5 has a resolution of about 28 km, so valleys, coasts and city climates are smoothed out.
 - Population data is from 2025, not 2023. The difference does not matter at this scale.
@@ -138,7 +140,7 @@ Found an entrance in a strange spot, or have an idea for the map? Open an
 
 | Data | Source | Licence |
 |---|---|---|
-| Population, settlement classes | [GHSL](https://human-settlement.emergency.copernicus.eu/) GHS-POP and GHS-SMOD 2025, European Commission, Joint Research Centre | CC BY 4.0 |
+| Population, settlement classes | [GHSL](https://human-settlement.emergency.copernicus.eu/) GHS-POP (1 km and 100 m) and GHS-SMOD 2025, European Commission, Joint Research Centre | CC BY 4.0 |
 | Place names | [GeoNames](https://www.geonames.org/) cities1000 | CC BY 4.0 |
 | Regions | [Natural Earth](https://www.naturalearthdata.com/) admin-1 states and provinces | public domain |
 | Weather | [ERA5](https://cds.climate.copernicus.eu/) through [ARCO-ERA5](https://github.com/google-research/arco-era5) (Google Research) | Copernicus licence; contains modified Copernicus Climate Change Service information (2023) |

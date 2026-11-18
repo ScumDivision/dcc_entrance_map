@@ -44,7 +44,9 @@ wie viele Menschen dort lebten, wie spät es war und wie der Himmel aussah.
 ## Die beiden Verteilungen
 
 Beide gehen von denselben Daten aus: Siedlungen sind zusammenhängende besiedelte 1-km-Zellen (Siedlungsmodell der
-GHSL), dazu die Bevölkerung im Umkreis von bis zu 25 km.
+GHSL), dazu die Bevölkerung im Umkreis von bis zu 25 km. Innerhalb einer Siedlung wählt jeder Zugang erst eine 1-km-Zelle
+nach ihren Einwohnern und darin eines der hundert 100-m-Felder, wieder nach Einwohnern. So landen die Zugänge zwischen
+den Häusern.
 
 **Hybrid (H)** nimmt Siedlungen ab Kleinstadtgröße. Jede bekommt einen kleinen Sockel und einen Anteil nach
 Einwohner<sup>0,85</sup>, die Zahl der Zugänge wächst also fast im Gleichschritt mit der Bevölkerung.
@@ -57,7 +59,7 @@ Zugänge, aber deutlich weniger, als ihre Bevölkerung allein ergäbe, und abgel
 | | Hybrid (H) | Vielfalt (D) |
 |---|---:|---:|
 | Shanghai, Umkreis 50 km | 267 | 110 |
-| Delhi, Umkreis 50 km | 306 | 104 |
+| Delhi, Umkreis 50 km | 306 | 103 |
 | Tokio, Umkreis 50 km | 246 | 96 |
 | Berlin, Umkreis 50 km | 59 | 48 |
 | Grönland | 1 | 19 |
@@ -88,7 +90,7 @@ Nur nötig, um die Verteilung oder den Wetterzeitpunkt zu ändern. Die Skripte n
 laufen mit [uv](https://docs.astral.sh/uv/):
 
 ```bash
-uv run dungeon_zugaenge.py   # Zugänge: lädt etwa 380 MB Quelldaten nach cache/, schreibt zugaenge/*.csv
+uv run dungeon_zugaenge.py   # Zugänge: lädt etwa 5,7 GB Quelldaten nach cache/, schreibt zugaenge/*.csv
 uv run bauen.py              # Kartendaten: lädt ERA5-Felder (etwa 40 MB), schreibt web/daten/
 ```
 
@@ -100,6 +102,7 @@ Wichtige Optionen von `dungeon_zugaenge.py` (alle unter `--help`):
 | `--d-zelle 100` | Größe der Regionen in km |
 | `--d-schwelle 1000` | kleinste Siedlung (Einwohner mit Umland), die in D einen Zugang bekommen kann |
 | `--seed 42` | Zufallsstartwert |
+| `--grob` | ohne das 100-m-Raster (5,3 GB); Zugänge liegen dann zufällig in ihrer 1-km-Zelle |
 
 ## Die Zugangsdaten
 
@@ -123,8 +126,8 @@ beibehalten.
 
 ## Bekannte Grenzen
 
-- Ein Zugang landet an einer zufälligen Stelle innerhalb einer besiedelten 1-km-Zelle. Am Rand kleiner Orte kann er so
-  einige Hundert Meter neben den Häusern liegen, auf einem Feld oder im Moor.
+- Die Zugänge liegen in den bewohnten 100-m-Feldern, aber das Raster bildet ab, wo Menschen wohnen, nicht Straßen oder
+  Plätze. In sehr kleinen oder verstreuten Orten kann ein Zugang trotzdem neben einem Feldweg landen.
 - Siedlungen ohne benannten Ort in der Nähe heißen `(namenlos)`. Das Popup zeigt trotzdem Region und Land.
 - ERA5 hat eine Auflösung von etwa 28 km; Täler, Küsten und Stadtklima sind geglättet.
 - Die Bevölkerungsdaten stammen von 2025, nicht 2023. Bei diesem Maßstab spielt das keine Rolle.

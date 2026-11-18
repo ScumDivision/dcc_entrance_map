@@ -29,7 +29,8 @@ Ablauf:
        B proportional | C ~ Wurzel | H Sockel 0,25 + Pop^0,85
      optional China-Bug: Gewicht chinesischer Siedlungen × --china
   4. Gedämpfter Zufall: gerundeter Fixanteil (1-z)·λ + Poisson(z·λ)
-  5. Jeder Zugang bekommt Koordinaten: Zelle innerhalb der Siedlung nach Einwohnerdichte, ±500 m gestreut
+  5. Jeder Zugang bekommt Koordinaten: 1-km-Zelle innerhalb der Siedlung nach Einwohnern, darin ein 100-m-Feld nach
+     dessen Einwohnern (GHS-POP 100 m, 5,3 GB; --grob = alte Streuung ±500 m ohne 100-m-Raster)
 
 Aufruf:
   uv run dungeon_zugaenge.py [--daten cache/quellen] [--seed 42] [--zufall 0.25] [--china 1.0]
@@ -37,7 +38,7 @@ Aufruf:
          [--vielfalt 0.45] [--d-zelle 100] [--d-schwelle 1000] [--d-klasse 13]
 """
 import argparse
-import io
+import shutil
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -60,6 +61,7 @@ MOLL = "ESRI:54009"
 GHSL = "https://jeodpp.jrc.ec.europa.eu/ftp/jrc-opendata/GHSL"
 QUELLEN = {
     "pop": f"{GHSL}/GHS_POP_GLOBE_R2023A/GHS_POP_E2025_GLOBE_R2023A_54009_1000/V1-0/GHS_POP_E2025_GLOBE_R2023A_54009_1000_V1_0.zip",
+    "pop100": f"{GHSL}/GHS_POP_GLOBE_R2023A/GHS_POP_E2025_GLOBE_R2023A_54009_100/V1-0/GHS_POP_E2025_GLOBE_R2023A_54009_100_V1_0.zip",
     "smod": f"{GHSL}/GHS_SMOD_GLOBE_R2023A/GHS_SMOD_E2025_GLOBE_R2023A_54009_1000/V2-0/GHS_SMOD_E2025_GLOBE_R2023A_54009_1000_V2_0.zip",
     "geonames": "https://download.geonames.org/export/dump/cities1000.zip",
     "regionen": "https://naciscdn.org/naturalearth/10m/cultural/ne_10m_admin_1_states_provinces.zip",
@@ -76,14 +78,18 @@ KLASSEN = {30: "Stadtzentrum", 23: "dichte Stadt", 22: "Kleinstadt", 21: "Vorort
 
 def hole(daten: Path, art: str) -> Path:
     """Lädt eine Quelle (falls nötig) und gibt den Pfad der entpackten Datei zurück."""
-    muster = {"pop": "GHS_POP_*.tif", "smod": "GHS_SMOD_*.tif", "geonames": "cities1000.txt",
-              "regionen": "ne_10m_admin_1_states_provinces.shp"}[art]
+    muster = {"pop": "GHS_POP_*_54009_1000_*.tif", "pop100": "GHS_POP_*_54009_100_*.tif", "smod": "GHS_SMOD_*.tif",
+              "geonames": "cities1000.txt", "regionen": "ne_10m_admin_1_states_provinces.shp"}[art]
     treffer = sorted(daten.glob(muster))
     if not treffer:
         daten.mkdir(parents=True, exist_ok=True)
         print(f"Lade {art} …")
-        with urllib.request.urlopen(QUELLEN[art]) as r:
-            zipfile.ZipFile(io.BytesIO(r.read())).extractall(daten)
+        zip_pfad = daten / f"{art}.zip"  # auf Platte statt im Speicher (100-m-Raster: 5,3 GB)
+        with urllib.request.urlopen(QUELLEN[art]) as r, open(zip_pfad, "wb") as f:
+            shutil.copyfileobj(r, f, 1 << 24)
+        with zipfile.ZipFile(zip_pfad) as z:
+            z.extractall(daten, [n for n in z.namelist() if n.endswith((".tif", ".txt", ".shp", ".shx", ".dbf", ".prj", ".cpg"))])
+        zip_pfad.unlink()
         treffer = sorted(daten.glob(muster))
     return treffer[0]
 
@@ -248,8 +254,10 @@ def ziehe(lam: np.ndarray, z: float, rng: np.random.Generator) -> np.ndarray:
     return (basis + rng.poisson(z * lam)).astype(int)
 
 
-def platziere(zellen: pd.DataFrame, e: pd.DataFrame, n: np.ndarray, rng: np.random.Generator) -> pd.DataFrame:
-    """Verteilt n[lab] Zugänge je Siedlung auf ihre Zellen (gewichtet nach Einwohnern), ±500 m Streuung."""
+def platziere(zellen: pd.DataFrame, e: pd.DataFrame, n: np.ndarray, rng: np.random.Generator,
+              fein: tuple[Path, int] | None = None) -> pd.DataFrame:
+    """Verteilt n[lab] Zugänge je Siedlung auf ihre Zellen (gewichtet nach Einwohnern). Mit fein = (GHS-POP 100 m, W) dann
+    auf ein 100-m-Feld der Zelle nach dessen Einwohnern, sonst ±500 m Streuung in der Zelle."""
     z = zellen.sort_values("lab", kind="stable")
     w = z["pop"].to_numpy() + 1e-3  # leere Zellen nicht ganz ausschließen
     cum = np.cumsum(w)
@@ -258,8 +266,11 @@ def platziere(zellen: pd.DataFrame, e: pd.DataFrame, n: np.ndarray, rng: np.rand
     lo = np.r_[0, hi[:-1]]
     lab = np.repeat(np.arange(len(e)), n)
     idx = np.searchsorted(cum, lo[lab] + rng.random(len(lab)) * (hi[lab] - lo[lab]))
-    x = z.x.to_numpy()[idx] + rng.uniform(-500, 500, len(idx))
-    y = z.y.to_numpy()[idx] + rng.uniform(-500, 500, len(idx))
+    if fein:
+        x, y = verfeinern(fein[0], z.key.to_numpy()[idx], fein[1], rng)
+    else:
+        x = z.x.to_numpy()[idx] + rng.uniform(-500, 500, len(idx))
+        y = z.y.to_numpy()[idx] + rng.uniform(-500, 500, len(idx))
     lon, lat = reproj(MOLL, "EPSG:4326", x.tolist(), y.tolist())
     return pd.DataFrame({"lat": np.round(lat, 5), "lon": np.round(lon, 5), "x": x, "y": y, "siedlung": lab,
                          "name": e.name.to_numpy()[lab], "cc": e.cc.to_numpy()[lab]})
@@ -392,6 +403,33 @@ def schreibe_csv(zg: pd.DataFrame, pfad: Path):
     spalten = ["lat", "lon", "name", "cc", "region", "region_en", "siedlung_pop", "zugaenge_siedlung", "umkreis_pop", "dichte",
                "klasse", "abstand_km"]
     zg[spalten].to_csv(pfad, index=False)
+
+
+def verfeinern(pfad: Path, key: np.ndarray, W: int, rng: np.random.Generator) -> tuple[np.ndarray, np.ndarray]:
+    """Wählt im 1-km-Feld eines der 100 Felder à 100 m nach dessen Einwohnern (GHS-POP 100 m) und setzt den Zugang
+    zufällig hinein. So landen Zugänge zwischen den Häusern statt am Ortsrand im Feld."""
+    n = len(key)
+    zeile, spalte = key // W, key % W
+    u, dx, dy = rng.random(n), rng.random(n), rng.random(n)
+    x, y = np.empty(n), np.empty(n)
+    ordnung = np.lexsort((spalte, zeile))
+    ks = key[ordnung]
+    grenzen = np.flatnonzero(np.r_[True, ks[1:] != ks[:-1], True])
+    with rasterio.Env(GDAL_CACHEMAX=2048), rasterio.open(pfad) as r:
+        t = r.transform
+        assert abs(t.a - ZELLE / 10) < 1e-6 and abs(t.c - X0) < 1 and abs(t.f - Y0) < 1, f"100-m-Raster passt nicht: {t}"
+        for a, b in zip(grenzen[:-1], grenzen[1:]):
+            gruppe = ordnung[a:b]
+            zr, zc = int(zeile[gruppe[0]]), int(spalte[gruppe[0]])
+            feld = r.read(1, window=Window(zc * 10, zr * 10, 10, 10), boundless=True, fill_value=0).astype(np.float64)
+            feld = np.clip(feld, 0, None).ravel()
+            if feld.sum() <= 0:
+                feld[:] = 1
+            j = np.minimum(np.searchsorted(np.cumsum(feld) / feld.sum(), u[gruppe], side="right"), 99)
+            sr, sc = np.divmod(j, 10)
+            x[gruppe] = X0 + (zc * 10 + sc + dx[gruppe]) * (ZELLE / 10)
+            y[gruppe] = Y0 - (zr * 10 + sr + dy[gruppe]) * (ZELLE / 10)
+    return x, y
 
 
 # ---------- Ausgabe ----------
@@ -557,6 +595,7 @@ if __name__ == "__main__":
     ap.add_argument("--orte", default="Tokyo,Shanghai,Lagos,Berlin,Munich,New York City,Anchorage,Nuuk,Reykjavík")
     ap.add_argument("--karten", type=Path, default=Path(__file__).with_name("zugaenge"), help="Ordner für Karten + CSV")
     ap.add_argument("--regionen", default="Tokyo,Lagos")
+    ap.add_argument("--grob", action="store_true", help="ohne 100-m-Raster platzieren (±500 m in der 1-km-Zelle)")
     ap.add_argument("--vielfalt", type=float, default=0.45, help="Modell D: Exponent γ je Region (1 = proportional)")
     ap.add_argument("--d-zelle", type=float, default=100, help="Modell D: Kantenlänge der Regionen in km")
     ap.add_argument("--d-schwelle", type=float, default=1000, help="Modell D: Mindestgröße einer Siedlung inkl. Einzug")
@@ -570,7 +609,8 @@ if __name__ == "__main__":
     rng = np.random.default_rng(a.seed)
     for m in MODELLE:
         e[f"{m}_sim"] = ziehe(e[m].to_numpy(), a.zufall, rng)
-    zg = platziere(zellen, e, e[f"{a.modell}_sim"].to_numpy(), rng)
+    fein = None if a.grob else (hole(a.daten, "pop100"), int(d["W"]))
+    zg = platziere(zellen, e, e[f"{a.modell}_sim"].to_numpy(), rng, fein)
 
     report(e, zellen, zg, orte, abseits, a.modell, a.orte.split(","))
 
@@ -579,7 +619,7 @@ if __name__ == "__main__":
     e_d["D"] = vielfalt(e_d, a.vielfalt, a.d_zelle, a.d_schwelle)
     rng_d = np.random.default_rng(a.seed + 1)
     n_d = ziehe(e_d["D"].to_numpy(), a.zufall, rng_d)
-    zg_d = platziere(zellen_d, e_d, n_d, rng_d)
+    zg_d = platziere(zellen_d, e_d, n_d, rng_d, fein)
     print(f"\nModell D (γ = {a.vielfalt}, Regionen {a.d_zelle:g} km, ab Klasse {a.d_klasse}, ab {a.d_schwelle:,.0f} Einw.):"
           f" {len(e_d):,} Siedlungen, {int(n_d.sum()):,} Zugänge")
     vergleich(zg, zg_d, (a.modell, "D"))
