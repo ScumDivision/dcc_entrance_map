@@ -461,6 +461,7 @@ class Windfeld {
   constructor(map, canvas) {
     this.map = map;
     this.cv = canvas;
+    map.getCanvasContainer().appendChild(canvas); // unter Popups und Bedienelementen
     this.ctx = canvas.getContext('2d');
     this.an = false;
     this.teile = [];
