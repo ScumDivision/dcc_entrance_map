@@ -7,7 +7,8 @@ nach echten Bevölkerungsdaten auf die echte Erde und zeigt das Wetter im Moment
 Globus oder flach ansehen, die Zugänge in zwei Varianten verteilen, und ein Klick auf einen Zugang zeigt, wo er liegt,
 wie viele Menschen dort lebten, wie spät es war und wie der Himmel aussah.
 
-Die Oberfläche gibt es auf **Deutsch und Englisch**. [English version](README.md).
+**Karte öffnen: <https://scumdivision.github.io/dcc_entrance_map/>** · auf Deutsch und Englisch ·
+[English version](README.md)
 
 ![Die Karte über Nordeuropa: Temperatur, Windströmung, Isobaren und das Popup eines Zugangs in Svolvær auf den Lofoten](docs/screenshot.jpg)
 
@@ -70,7 +71,8 @@ Zugänge, aber deutlich weniger, als ihre Bevölkerung allein ergäbe, und abgel
 
 ## Lokal starten
 
-Alle erzeugten Daten liegen im Repository, ein einfacher Webserver genügt:
+Am einfachsten ist die oben verlinkte Online-Fassung. Lokal genügt ein einfacher Webserver, weil alle erzeugten Daten
+im Repository liegen:
 
 ```bash
 git clone https://github.com/ScumDivision/dcc_entrance_map.git
@@ -137,6 +139,12 @@ Ein Zugang an einer seltsamen Stelle oder eine Idee für die Karte? Gern als
 Siehe die Tabelle in der [englischen README](README.md#sources-and-licences): GHSL (JRC, CC BY 4.0), GeoNames
 (CC BY 4.0), Natural Earth (gemeinfrei), ERA5 (Copernicus-Lizenz), OpenFreeMap/OpenMapTiles/OpenStreetMap, Esri,
 MapLibre GL JS.
+
+## Lizenz
+
+Der Code (`dungeon_zugaenge.py`, `bauen.py`, `web/*.html|js|css`) steht unter der [MIT-Lizenz](LICENSE). Die erzeugten
+Daten in `zugaenge/` und `web/daten/` stammen aus den genannten Quellen und behalten deren Bedingungen, vor allem die
+Namensnennung für GHSL, GeoNames und Copernicus (CC BY 4.0 bzw. Copernicus-Lizenz).
 
 ## Hinweis
 

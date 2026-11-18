@@ -7,7 +7,8 @@ Earth, based on real population data, and shows the weather at the exact moment 
 or a flat map, switch between two ways of distributing the entrances, and click any entrance to see where it is, how
 many people lived around it, what time it was there and what the sky looked like.
 
-The interface is available in **English and German**. [Deutsche Fassung dieser Anleitung](README.de.md).
+**Open the map: <https://scumdivision.github.io/dcc_entrance_map/>** · available in English and German ·
+[Deutsche Fassung dieser Anleitung](README.de.md)
 
 ![The map over northern Europe: temperature, wind flow, isobars and the popup of an entrance in Svolvær, Lofoten](docs/screenshot.jpg)
 
@@ -69,7 +70,8 @@ fewer than their population alone would give them, and remote places get a real 
 
 ## Run it locally
 
-All generated data is included, so any static web server will do:
+The easiest way is the hosted version linked above. To run it yourself, any static web server will do, because all
+generated data is included:
 
 ```bash
 git clone https://github.com/ScumDivision/dcc_entrance_map.git
@@ -145,6 +147,12 @@ Found an entrance in a strange spot, or have an idea for the map? Open an
 | Map library | [MapLibre GL JS](https://maplibre.org/) | BSD-3-Clause |
 
 The canon details (date, time, number of stairwells, opening hour) come from *Dungeon Crawler Carl*, book 1.
+
+## Licence
+
+The code (`dungeon_zugaenge.py`, `bauen.py`, `web/*.html|js|css`) is released under the [MIT licence](LICENSE).
+The generated data in `zugaenge/` and `web/daten/` is derived from the sources above and keeps their terms, in
+particular attribution for GHSL, GeoNames and Copernicus (CC BY 4.0 / Copernicus licence).
 
 ## Disclaimer
 
