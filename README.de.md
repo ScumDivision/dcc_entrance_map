@@ -90,7 +90,7 @@ Nur nötig, um die Verteilung oder den Wetterzeitpunkt zu ändern. Die Skripte n
 laufen mit [uv](https://docs.astral.sh/uv/):
 
 ```bash
-uv run dungeon_zugaenge.py   # Zugänge: lädt etwa 5,7 GB Quelldaten nach cache/, schreibt zugaenge/*.csv
+uv run dungeon_zugaenge.py   # Zugänge: lädt etwa 6,1 GB Quelldaten nach cache/, schreibt zugaenge/*.csv
 uv run bauen.py              # Kartendaten: lädt ERA5-Felder (etwa 40 MB), schreibt web/daten/
 ```
 
@@ -111,7 +111,7 @@ Die beiden CSV-Dateien in [`zugaenge/`](zugaenge/) enthalten eine Zeile je Zugan
 | Spalte | Bedeutung |
 |---|---|
 | `lat`, `lon` | Position (WGS 84) |
-| `name` | größter benannter Ort der Siedlung; `bei X` = in der Nähe von X; `(namenlos)` = kein benannter Ort im Umkreis von 30 km |
+| `name` | größter Ort der Siedlung (GeoNames-Orte ab 500 Einwohnern, sonst der nächste bewohnte Ort jeder Größe); `bei X` = in der Nähe von X; `(namenlos)` = kein bewohnter Ort im Umkreis von 30 km |
 | `cc` | Ländercode (ISO 3166-1 Alpha-2) |
 | `region`, `region_en` | Bundesland oder Provinz (Natural Earth admin-1), deutscher und englischer Name |
 | `siedlung_pop` | Einwohner der Siedlung mit Umland bis 25 km |
@@ -128,7 +128,8 @@ beibehalten.
 
 - Die Zugänge liegen in den bewohnten 100-m-Feldern, aber das Raster bildet ab, wo Menschen wohnen, nicht Straßen oder
   Plätze. In sehr kleinen oder verstreuten Orten kann ein Zugang trotzdem neben einem Feldweg landen.
-- Siedlungen ohne benannten Ort in der Nähe heißen `(namenlos)`. Das Popup zeigt trotzdem Region und Land.
+- Einige Hundert Zugänge, vor allem im Sahel und in abgelegenen Teilen Kenias und Indonesiens, haben in GeoNames keinen
+  bewohnten Ort im Umkreis von 30 km und heißen `(namenlos)`. Das Popup zeigt trotzdem Region und Land.
 - ERA5 hat eine Auflösung von etwa 28 km; Täler, Küsten und Stadtklima sind geglättet.
 - Die Bevölkerungsdaten stammen von 2025, nicht 2023. Bei diesem Maßstab spielt das keine Rolle.
 

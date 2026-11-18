@@ -20,7 +20,7 @@ Neu in v3 (für die Weltkarte in web/):
 Daten (JRC / EU-Kommission, 1 km, Mollweide, Stand 2025):
   GHS-POP   Einwohner je km²-Zelle
   GHS-SMOD  Siedlungsklasse je Zelle: 30 Stadtzentrum, 23/22 Stadtcluster, 21 Vorort, 13 Dorf, 12/11 ländlich
-  GeoNames  nur für Ortsnamen und Länderkürzel
+  GeoNames  nur für Ortsnamen und Länderkürzel (cities500, Rückfall allCountries: alle bewohnten Orte)
 
 Ablauf:
   1. Siedlungen = zusammenhängende Zellen mit Klasse >= --min-klasse (ohne Vororte, die würden alles verketten)
@@ -38,6 +38,7 @@ Aufruf:
          [--vielfalt 0.45] [--d-zelle 100] [--d-schwelle 1000] [--d-klasse 13]
 """
 import argparse
+import io
 import shutil
 import urllib.request
 import zipfile
@@ -64,6 +65,7 @@ QUELLEN = {
     "pop100": f"{GHSL}/GHS_POP_GLOBE_R2023A/GHS_POP_E2025_GLOBE_R2023A_54009_100/V1-0/GHS_POP_E2025_GLOBE_R2023A_54009_100_V1_0.zip",
     "smod": f"{GHSL}/GHS_SMOD_GLOBE_R2023A/GHS_SMOD_E2025_GLOBE_R2023A_54009_1000/V2-0/GHS_SMOD_E2025_GLOBE_R2023A_54009_1000_V2_0.zip",
     "geonames": "https://download.geonames.org/export/dump/cities500.zip",
+    "geonames_alle": "https://download.geonames.org/export/dump/allCountries.zip",
     "regionen": "https://naciscdn.org/naturalearth/10m/cultural/ne_10m_admin_1_states_provinces.zip",
 }
 STUFEN = [0, 10_000, 100_000, 500_000, 1_000_000, 5_000_000, np.inf]
@@ -136,15 +138,39 @@ def lese_raster(daten: Path) -> dict:
     return d
 
 
+OHNE_ORTSART = {"PPLX", "PPLH", "PPLQ", "PPLW", "PPLCH"}  # Ortsteile, historische, verlassene, zerstörte Orte
+
+
 def lade_orte(daten: Path, W: int) -> pd.DataFrame:
     """GeoNames-Orte mit Mollweide-Koordinaten und Rasterschlüssel."""
     cols = ["id", "name", "ascii", "alt", "lat", "lon", "fclass", "fcode", "cc", "cc2",
             "a1", "a2", "a3", "a4", "pop", "elev", "dem", "tz", "mod"]
     o = pd.read_csv(hole(daten, "geonames"), sep="\t", names=cols, usecols=["name", "lat", "lon", "fcode", "cc", "pop"],
                     quoting=3, keep_default_na=False)
-    o = o[~o.fcode.isin({"PPLX", "PPLH", "PPLQ", "PPLW", "PPLCH"})].reset_index(drop=True)
+    o = o[~o.fcode.isin(OHNE_ORTSART)].reset_index(drop=True)
     o["x"], o["y"] = reproj("EPSG:4326", MOLL, o.lon.tolist(), o.lat.tolist())
     o["key"] = ((Y0 - o.y) // ZELLE).astype(np.int64) * W + ((o.x - X0) // ZELLE).astype(np.int64)
+    return o
+
+
+def lade_alle_orte(daten: Path) -> pd.DataFrame:
+    """Alle bewohnten Orte aus GeoNames allCountries (Klasse P, auch ohne Einwohnerzahl) als Rückfall für Namen.
+    Lädt einmal 420 MB und behält nur Name, Lage und Land (cache: geonames_alle_P.tsv)."""
+    cache = daten / "geonames_alle_P.tsv"
+    if not cache.exists():
+        zip_pfad = daten / "allCountries.zip"
+        print("Lade geonames_alle …")
+        with urllib.request.urlopen(QUELLEN["geonames_alle"]) as r, open(zip_pfad, "wb") as f:
+            shutil.copyfileobj(r, f, 1 << 24)
+        with zipfile.ZipFile(zip_pfad) as z, z.open("allCountries.txt") as roh, open(cache, "w", encoding="utf-8") as aus:
+            for zeile in io.TextIOWrapper(roh, encoding="utf-8"):
+                t = zeile.split("\t")
+                if t[6] == "P" and t[7] not in OHNE_ORTSART:
+                    aus.write(f"{t[1]}\t{t[4]}\t{t[5]}\t{t[8]}\n")
+        zip_pfad.unlink()
+    o = pd.read_csv(cache, sep="\t", names=["name", "lat", "lon", "cc"], quoting=3, keep_default_na=False,
+                    dtype={"name": str, "cc": str})
+    o["x"], o["y"] = reproj("EPSG:4326", MOLL, o.lon.tolist(), o.lat.tolist())
     return o
 
 
@@ -155,7 +181,7 @@ def zell_xy(key: np.ndarray, W: int) -> np.ndarray:
     return np.c_[X0 + (key % W + 0.5) * ZELLE, Y0 - (key // W + 0.5) * ZELLE]
 
 
-def siedlungen(d: dict, orte: pd.DataFrame, min_klasse: int, einzug_km: float):
+def siedlungen(d: dict, orte: pd.DataFrame, min_klasse: int, einzug_km: float, alle: pd.DataFrame | None = None):
     """Labelt Siedlungen, ordnet Einzugsgebiete zu, benennt sie. Gibt (zellen, einheiten, abseits_pop) zurück."""
     W = int(d["W"])
     ist = d["s_cls"] >= min_klasse
@@ -205,6 +231,13 @@ def siedlungen(d: dict, orte: pd.DataFrame, min_klasse: int, einzug_km: float):
     dist, nn = cKDTree(orte[["x", "y"]].to_numpy()).query(e.loc[fehlt, ["x", "y"]].to_numpy(), workers=-1)
     e.loc[fehlt, "cc"] = orte.cc.to_numpy()[nn]
     e.loc[fehlt, "name"] = np.where(dist < 30_000, "bei " + orte.name.to_numpy()[nn], "(namenlos)")
+    # Rückfall: nächster bewohnter Ort aus allCountries (bis 2 km = der Ort selbst, bis 30 km „bei …“)
+    rest = (e.name == "(namenlos)").to_numpy()
+    if alle is not None and rest.any():
+        dist, nn = cKDTree(alle[["x", "y"]].to_numpy()).query(e.loc[rest, ["x", "y"]].to_numpy(), workers=-1)
+        nah = alle.name.to_numpy()[nn].astype(object)
+        e.loc[rest, "name"] = np.where(dist < 2_000, nah, np.where(dist < 30_000, "bei " + nah, "(namenlos)"))
+        e.loc[rest, "cc"] = np.where(dist < 30_000, alle.cc.to_numpy()[nn], e.loc[rest, "cc"].to_numpy())
     e["stufe"] = pd.cut(e["pop"], STUFEN, labels=STUFEN_NAMEN, right=False)
 
     abseits = qp[~drin].sum()
@@ -604,7 +637,8 @@ if __name__ == "__main__":
 
     d = lese_raster(a.daten)
     orte = lade_orte(a.daten, int(d["W"]))
-    zellen, e, abseits = siedlungen(d, orte, a.min_klasse, a.einzug)
+    alle_orte = lade_alle_orte(a.daten)
+    zellen, e, abseits = siedlungen(d, orte, a.min_klasse, a.einzug, alle_orte)
     e = erwartungswerte(e, a.china)
     rng = np.random.default_rng(a.seed)
     for m in MODELLE:
@@ -615,7 +649,7 @@ if __name__ == "__main__":
     report(e, zellen, zg, orte, abseits, a.modell, a.orte.split(","))
 
     # Modell D: eigene Siedlungsliste (ab Dorf) und eigener Zufall, damit die Ziehung oben unverändert bleibt
-    zellen_d, e_d, abseits_d = siedlungen(d, orte, a.d_klasse, a.einzug)
+    zellen_d, e_d, abseits_d = siedlungen(d, orte, a.d_klasse, a.einzug, alle_orte)
     e_d["D"] = vielfalt(e_d, a.vielfalt, a.d_zelle, a.d_schwelle)
     rng_d = np.random.default_rng(a.seed + 1)
     n_d = ziehe(e_d["D"].to_numpy(), a.zufall, rng_d)

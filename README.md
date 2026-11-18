@@ -88,7 +88,7 @@ You only need this to change the distribution or the weather time. The scripts d
 with [uv](https://docs.astral.sh/uv/):
 
 ```bash
-uv run dungeon_zugaenge.py   # entrances: downloads about 5.7 GB of source data to cache/, writes zugaenge/*.csv
+uv run dungeon_zugaenge.py   # entrances: downloads about 6.1 GB of source data to cache/, writes zugaenge/*.csv
 uv run bauen.py              # map data: downloads ERA5 fields (about 40 MB), writes web/daten/
 ```
 
@@ -111,7 +111,7 @@ The two CSV files in [`zugaenge/`](zugaenge/) contain one row per entrance:
 | Column | Meaning |
 |---|---|
 | `lat`, `lon` | position (WGS 84) |
-| `name` | largest named place of the settlement; `bei X` = near X; `(namenlos)` = no named place within 30 km |
+| `name` | largest place of the settlement (GeoNames places with 500+ inhabitants, otherwise the nearest populated place of any size); `bei X` = near X; `(namenlos)` = no populated place within 30 km |
 | `cc` | country code (ISO 3166-1 alpha-2) |
 | `region`, `region_en` | state or province (Natural Earth admin-1), German and English name |
 | `siedlung_pop` | population of the settlement including its surroundings up to 25 km |
@@ -127,7 +127,8 @@ Feel free to use them for your own games, stories or maps; please keep the sourc
 
 - Entrances sit in the most populated 100 m cells, but the population grid models where people live, not streets or
   squares. In very small or very scattered places an entrance can still end up next to a farm track.
-- Settlements without a named place nearby are called `(namenlos)` (unnamed). The popup still shows region and country.
+- A few hundred entrances, mostly in the Sahel and remote parts of Kenya and Indonesia, have no populated place within
+  30 km in GeoNames and are called `(namenlos)` (unnamed). The popup still shows region and country.
 - ERA5 has a resolution of about 28 km, so valleys, coasts and city climates are smoothed out.
 - Population data is from 2025, not 2023. The difference does not matter at this scale.
 
@@ -141,7 +142,7 @@ Found an entrance in a strange spot, or have an idea for the map? Open an
 | Data | Source | Licence |
 |---|---|---|
 | Population, settlement classes | [GHSL](https://human-settlement.emergency.copernicus.eu/) GHS-POP (1 km and 100 m) and GHS-SMOD 2025, European Commission, Joint Research Centre | CC BY 4.0 |
-| Place names | [GeoNames](https://www.geonames.org/) cities500 | CC BY 4.0 |
+| Place names | [GeoNames](https://www.geonames.org/) cities500, allCountries (populated places) as fallback | CC BY 4.0 |
 | Regions | [Natural Earth](https://www.naturalearthdata.com/) admin-1 states and provinces | public domain |
 | Weather | [ERA5](https://cds.climate.copernicus.eu/) through [ARCO-ERA5](https://github.com/google-research/arco-era5) (Google Research) | Copernicus licence; contains modified Copernicus Climate Change Service information (2023) |
 | Base maps | [OpenFreeMap](https://openfreemap.org/), [OpenMapTiles](https://openmaptiles.org/), © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors | ODbL, see providers |
