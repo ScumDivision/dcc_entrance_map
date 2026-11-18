@@ -375,6 +375,37 @@ async function ladeBasis(name) {
   return stil;
 }
 
+// Hausfarben für die Grundkarte: Pflaumentöne, Ortsnamen hell mit Tintenrand (Hell bleibt hell, nur dunklere Schrift)
+const HAUS = { ink: '#0b0710', plum: '#1a0a22', land: '#241030', bau: '#2e1238', weg: '#3d1a45', grenze: '#a33c84',
+  wasser: '#0a0613', ort: '#ffd9e6', staat: '#ffffff', wassername: '#7fd8ea', strasse: '#c9b3c4' };
+
+function hausfarben(s) {
+  const dunkel = zustand.grundkarte !== 'hell';
+  for (const l of s.layers) {
+    const id = l.id, p = (l.paint ||= {});
+    if (l.type === 'symbol' && l.layout?.['text-field']) {
+      const staat = id.startsWith('place_country'), wasser = id === 'water_name';
+      const strasse = id.startsWith('highway') || id.startsWith('road');
+      if (staat) l.layout['text-font'] = ['Noto Sans Bold'];
+      p['text-color'] = dunkel ? (staat ? HAUS.staat : wasser ? HAUS.wassername : strasse ? HAUS.strasse : HAUS.ort)
+        : (staat ? '#6e1a5c' : wasser ? '#2a6b8a' : '#3a1640');
+      p['text-halo-color'] = dunkel ? HAUS.ink : '#ffffff';
+      p['text-halo-width'] = staat ? 1.8 : 1.5;
+      p['text-halo-blur'] = 0;
+      continue;
+    }
+    if (zustand.grundkarte !== 'dunkel') continue;
+    if (l.type === 'background') p['background-color'] = HAUS.plum;
+    else if (id === 'water') p['fill-color'] = HAUS.wasser;
+    else if (id === 'waterway') p['line-color'] = HAUS.wasser;
+    else if (l.type === 'fill' && /^(landcover|landuse|aeroway)/.test(id)) { p['fill-color'] = HAUS.land; p['fill-opacity'] = 0.7; }
+    else if (id === 'building') p['fill-color'] = HAUS.bau;
+    else if (id.startsWith('boundary_country')) p['line-color'] = HAUS.grenze;
+    else if (id.startsWith('boundary')) p['line-color'] = 'rgba(163, 60, 132, 0.45)';
+    else if (l.type === 'line' && /^(highway|railway|road|aeroway)/.test(id)) p['line-color'] = HAUS.weg;
+  }
+}
+
 const sicht = an => (an ? 'visible' : 'none');
 const landFilter = () => (zustand.land ? ['==', ['get', 'cc'], zustand.land] : null);
 const filterTeil = () => (zustand.land ? { filter: landFilter() } : {});
@@ -386,9 +417,10 @@ function baueStil() {
     const tf = l.layout && l.layout['text-field'];
     if (tf && JSON.stringify(tf).includes('name')) l.layout['text-field'] = beschriftung();
   }
+  hausfarben(s);
   s.projection = { type: zustand.projektion };
   s.sky = { 'atmosphere-blend': ['interpolate', ['linear'], ['zoom'], 0, 1, 5, 1, 7, 0] };
-  const strich = hell() ? 'rgba(40,50,80,' : 'rgba(255,255,255,';
+  const strich = hell() ? 'rgba(58,22,64,' : 'rgba(255,217,230,';
   const wetter = [];
   for (const n of [...WETTER, 'nacht']) {
     s.sources['w-' + n] = { type: 'raster', tileSize: 256, maxzoom: 4, tiles: [`${DATEN}kacheln/${n}/{z}/{x}/{y}.png`] };
@@ -406,9 +438,9 @@ function baueStil() {
   s.sources.auswahl = { type: 'geojson', data: leer };
   const linien = [
     { id: 'nullgrad', type: 'line', source: 'nullgrad', layout: { visibility: sicht(zustand.nullgrad) },
-      paint: { 'line-color': hell() ? '#2b6cd6' : '#8fd0ff', 'line-width': 1.6, 'line-dasharray': [3, 2] } },
+      paint: { 'line-color': hell() ? '#0087a8' : '#00e5ff', 'line-width': 1.6, 'line-dasharray': [3, 2] } },
     { id: 'terminator', type: 'line', source: 'terminator', layout: { visibility: sicht(zustand.nacht) },
-      paint: { 'line-color': 'rgba(255,190,110,0.55)', 'line-width': 1 } },
+      paint: { 'line-color': 'rgba(255,204,0,0.55)', 'line-width': 1 } },
     { id: 'isobaren', type: 'line', source: 'isobaren', layout: { visibility: sicht(zustand.isobaren) },
       paint: { 'line-color': strich + '0.5)', 'line-width': ['case', ['==', ['%', ['get', 'hpa'], 20], 0], 1.4, 0.7] } },
   ];
@@ -419,13 +451,13 @@ function baueStil() {
     { id: 'isobaren-zahl', type: 'symbol', source: 'isobaren', layout: { visibility: sicht(zustand.isobaren),
       'symbol-placement': 'line', 'symbol-spacing': 320, 'text-field': ['to-string', ['get', 'hpa']],
       'text-font': ['Noto Sans Regular'], 'text-size': 10 },
-    paint: { 'text-color': strich + '0.85)', 'text-halo-color': hell() ? '#fff' : '#0d1018', 'text-halo-width': 1.2 } },
+    paint: { 'text-color': strich + '0.9)', 'text-halo-color': hell() ? '#fff' : '#0b0710', 'text-halo-width': 1.2 } },
     { id: 'druckzentren', type: 'symbol', source: 'druckzentren', layout: { visibility: sicht(zustand.isobaren),
       'text-field': ['format', ['match', ['get', 'typ'], 'H', hoch[0], hoch[1]], { 'font-scale': 1.5 }, '\n', {},
         ['to-string', ['get', 'hpa']], { 'font-scale': 0.7 }],
       'text-font': ['Noto Sans Bold'], 'text-size': 15, 'text-allow-overlap': true, 'text-line-height': 1 },
-    paint: { 'text-color': ['match', ['get', 'typ'], 'H', '#5fa8ff', '#ff6b5f'],
-      'text-halo-color': hell() ? '#fff' : '#0d1018', 'text-halo-width': 1.5 } },
+    paint: { 'text-color': ['match', ['get', 'typ'], 'H', '#00e5ff', '#ff004c'],
+      'text-halo-color': hell() ? '#fff' : '#0b0710', 'text-halo-width': 1.8 } },
     { id: 'zugaenge-dichte', type: 'heatmap', source: 'zugaenge', maxzoom: 9, ...filterTeil(),
       layout: { visibility: sicht(zustand.zugaenge) },
       paint: {
@@ -433,21 +465,21 @@ function baueStil() {
         'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 0.012, 2, 0.04, 4, 0.15, 6, 0.5, 9, 1.4],
         'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 2, 2, 3.5, 4, 7, 6, 14, 9, 22],
         'heatmap-color': ['interpolate', ['linear'], ['heatmap-density'],
-          0, 'rgba(0,0,0,0)', 0.04, 'rgba(140,50,20,0.35)', 0.2, 'rgba(210,80,25,0.65)', 0.45, 'rgba(255,140,45,0.85)',
-          0.75, 'rgba(255,205,110,0.95)', 1, 'rgba(255,248,220,1)'],
-        'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 4, 0.9, 7, 0] } },
+          0, 'rgba(0,0,0,0)', 0.04, 'rgba(110,26,92,0.4)', 0.2, 'rgba(255,0,76,0.65)', 0.45, 'rgba(255,45,122,0.85)',
+          0.75, 'rgba(255,204,0,0.95)', 1, 'rgba(255,246,208,1)'],
+        'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 2, 0.8, 4, 0.65, 6, 0] } },
     { id: 'zugaenge-punkte', type: 'circle', source: 'zugaenge', minzoom: 3.5, ...filterTeil(),
       layout: { visibility: sicht(zustand.zugaenge) },
       paint: {
         'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 1.5, 8, 3.5, 12, 6],
-        'circle-color': '#ffb347',
-        'circle-stroke-color': '#2a1606',
+        'circle-color': '#ffcc00',
+        'circle-stroke-color': '#0b0710',
         'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 5, 0, 8, 1],
         'circle-opacity': ['interpolate', ['linear'], ['zoom'], 3.5, 0, 5.5, 0.92],
         'circle-stroke-opacity': ['interpolate', ['linear'], ['zoom'], 3.5, 0, 5.5, 0.92] } },
     { id: 'auswahl', type: 'circle', source: 'auswahl',
       paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 2, 4, 10, 9], 'circle-color': 'rgba(0,0,0,0)',
-        'circle-stroke-color': '#fff', 'circle-stroke-width': 2 } },
+        'circle-stroke-color': '#00e5ff', 'circle-stroke-width': 2.5 } },
   );
   return s;
 }
@@ -493,8 +525,8 @@ class Windfeld {
 
   farben() {
     this.palette = hell()
-      ? ['rgba(30,45,80,0.35)', 'rgba(30,45,80,0.6)', 'rgba(20,35,70,0.85)', 'rgba(150,40,20,0.95)']
-      : ['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.55)', 'rgba(255,255,255,0.85)', 'rgba(255,215,140,0.95)'];
+      ? ['rgba(58,22,64,0.35)', 'rgba(58,22,64,0.6)', 'rgba(42,18,48,0.85)', 'rgba(255,0,76,0.95)']
+      : ['rgba(255,217,230,0.3)', 'rgba(255,217,230,0.55)', 'rgba(255,255,255,0.85)', 'rgba(255,204,0,0.95)'];
   }
 
   neu(p) {
